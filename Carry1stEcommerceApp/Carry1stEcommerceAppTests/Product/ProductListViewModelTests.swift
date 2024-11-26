@@ -40,8 +40,8 @@ final class ProductListViewModelTests: XCTestCase {
         viewModel.loadProducts()
 
         // Assert
-        XCTAssertEqual(viewModel.products.count, 1)
-        XCTAssertEqual(viewModel.products.first?.name, "Test Product")
+        XCTAssertEqual(mockCache.stubbedFetchProducts?.count, 1, "Expected 1 product in the view model")
+        XCTAssertEqual(mockCache.stubbedFetchProducts?.first?.name, "Test Product")
     }
 
     func testFetchProductsFromRepositorySuccess() {
@@ -52,12 +52,22 @@ final class ProductListViewModelTests: XCTestCase {
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
 
+        let expectation = XCTestExpectation(description: "Fetch products from repository")
+
         // Act
         viewModel.loadProducts()
 
         // Assert
-        XCTAssertEqual(viewModel.products.count, 1)
-        XCTAssertEqual(viewModel.products.first?.name, "Repository Product")
+        viewModel.$products
+            .dropFirst() // Skip the initial empty state
+            .sink { products in
+                XCTAssertEqual(products.count, 1, "Expected 1 product from the repository")
+                XCTAssertEqual(products.first?.name, "Repository Product")
+                expectation.fulfill()
+            }
+            .store(in: &cancellables)
+
+        wait(for: [expectation], timeout: 2.0)
     }
 
     func testFetchProductsFromRepositoryFailure() {
@@ -66,12 +76,23 @@ final class ProductListViewModelTests: XCTestCase {
         mockRepository.stubbedFetchProductsResult = Fail(error: URLError(.badServerResponse))
             .eraseToAnyPublisher()
 
+        let expectation = XCTestExpectation(description: "Handle fetch products failure")
+
         // Act
         viewModel.loadProducts()
 
         // Assert
-        XCTAssertNotNil(viewModel.errorMessage)
-        XCTAssertEqual(viewModel.products.count, 0)
+        viewModel.$errorMessage
+            .dropFirst() 
+            .sink { errorMessage in
+                XCTAssertNotNil(errorMessage, "Error message should be set on failure")
+                XCTAssertEqual(self.viewModel.products.count, 0, "Products should be empty on failure")
+                expectation.fulfill()
+            }
+            .store(in: &cancellables)
+
+        wait(for: [expectation], timeout: 2.0)
     }
 }
+
 

@@ -6,13 +6,29 @@
 //
 
 import SwiftUI
+import Kingfisher
 
 struct ProductListRowView: View {
+    let product: Product
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        HStack {
+            KFImage(URL(string: product.imageLocation))
+                .placeholder {
+                    ProgressView()
+                        .frame(width: 50, height: 50)
+                }
+                .resizable()
+                .frame(width: 50, height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            
+            VStack(alignment: .leading) {
+                Text(product.name)
+                    .font(.headline)
+                Text("$\(product.price)")
+                    .font(.subheadline)
+            }
+        }
     }
 }
 
-#Preview {
-    ProductListRowView()
-}

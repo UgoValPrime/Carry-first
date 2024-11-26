@@ -5,31 +5,66 @@
 //  Created by GIGL-IT on 26/11/2024.
 //
 
+
 import XCTest
+import Combine
+@testable import Carry1stEcommerceApp
 
-final class ProductRepositoryTest: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+final class ProductRepositoryTests: XCTestCase {
+    var productRepository: MockProductRepository!
+    var sampleProducts: [Product]!
+    var cancellables: Set<AnyCancellable>!
+    
+    override func setUp() {
+        super.setUp()
+        productRepository = MockProductRepository()
+        sampleProducts = [
+            Product(id: 1, name: "Product 1", description: "Desc 1", price: 10.0, currencyCode: "USD", currencySymbol: "$", quantity: 1, imageLocation: "url1", status: "Available"),
+            Product(id: 2, name: "Product 2", description: "Desc 2", price: 20.0, currencyCode: "USD", currencySymbol: "$", quantity: 2, imageLocation: "url2", status: "Out of Stock")
+        ]
+        cancellables = []
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    override func tearDown() {
+        productRepository = nil
+        sampleProducts = nil
+        cancellables = nil
+        super.tearDown()
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    func testFetchProductsSuccess() {
+        // Arrange
+        productRepository.stubbedFetchProductsResult = Just(sampleProducts)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+        
+        // Act & Assert
+        productRepository.fetchProducts()
+            .sink(receiveCompletion: { completion in
+                if case .failure(let error) = completion {
+                    XCTFail("Expected success but got error: \(error)")
+                }
+            }, receiveValue: { products in
+                XCTAssertEqual(products.count, 2)
+                XCTAssertEqual(products.first?.name, "Product 1")
+            })
+            .store(in: &cancellables)
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+    func testFetchProductsFailure() {
+        // Arrange
+        let error = URLError(.notConnectedToInternet)
+        productRepository.stubbedFetchProductsResult = Fail(error: error).eraseToAnyPublisher()
+        
+        // Act & Assert
+        productRepository.fetchProducts()
+            .sink(receiveCompletion: { completion in
+                if case .failure(let error) = completion {
+                    XCTAssertEqual((error as? URLError)?.code, .notConnectedToInternet)
+                }
+            }, receiveValue: { products in
+                XCTFail("Expected failure but got products: \(products)")
+            })
+            .store(in: &cancellables)
     }
-
 }

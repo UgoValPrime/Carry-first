@@ -6,3 +6,13 @@
 //
 
 import Foundation
+
+struct Product: Identifiable,Codable, Hashable {
+    var id: Int
+    var name, description: String
+    var price: Double
+    var currencyCode, currencySymbol: String
+    var quantity: Int
+    var imageLocation: String
+    var status: String
+}
