@@ -1,68 +1,51 @@
 //
-//  CoreDataStack.swift
+//  UserDefaultsManager.swift
 //  Carry1stEcommerceApp
 //
 //  Created by GIGL-IT on 25/11/2024.
 //
 
 import Foundation
-import CoreData
 
-class CoreDataStack {
-    static let shared = CoreDataStack()
 
-    private init() {}
-
-    // Persistent container for Core Data
-    lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "CacheModel") // Generic name for your data model
-        container.loadPersistentStores { _, error in
-            if let error = error {
-                fatalError("Failed to load Core Data stack: \(error)")
-            }
+class UserDefaultsManager {
+    private let userDefaults: UserDefaults
+        
+        init(userDefaults: UserDefaults = .standard) {
+            self.userDefaults = userDefaults
         }
-        return container
-    }()
-
-    // Context for read/write operations
-    var context: NSManagedObjectContext {
-        persistentContainer.viewContext
-    }
-
-    // Generic function to fetch data
-    func fetchEntities<T: NSManagedObject>(_ entityType: T.Type) -> [T] {
-        let fetchRequest = T.fetchRequest()
-
+    
+    /// Save a Codable object to UserDefaults
+    func save<T: Codable>(_ object: T, forKey key: String) {
         do {
-            return try context.fetch(fetchRequest) as? [T] ?? []
+            let data = try JSONEncoder().encode(object)
+            userDefaults.set(data, forKey: key)
+            print("Object saved to UserDefaults with key: \(key)")
         } catch {
-            print("Failed to fetch entities for \(T.self): \(error)")
-            return []
+            print("Failed to encode and save object: \(error)")
         }
     }
-
-    // Generic function to clear data
-    func clearEntities<T: NSManagedObject>(_ entityType: T.Type) {
-        let fetchRequest = T.fetchRequest()
-        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-
+    
+    /// Fetch a Codable object from UserDefaults
+    func fetch<T: Codable>(forKey key: String, as type: T.Type) -> T? {
+        guard let data = userDefaults.data(forKey: key) else {
+            print("No object found in UserDefaults for key: \(key)")
+            return nil
+        }
+        
         do {
-            try context.execute(deleteRequest)
-            print("\(T.self) entities cleared.")
+            let object = try JSONDecoder().decode(type, from: data)
+            print("Object fetched from UserDefaults with key: \(key)")
+            return object
         } catch {
-            print("Failed to clear entities for \(T.self): \(error)")
+            print("Failed to decode object: \(error)")
+            return nil
         }
     }
-
-    // Save context changes
-    func saveContext() {
-        guard context.hasChanges else { return }
-
-        do {
-            try context.save()
-            print("Context saved successfully.")
-        } catch {
-            print("Failed to save context: \(error)")
-        }
+    
+    /// Remove an object from UserDefaults
+    func remove(forKey key: String) {
+        userDefaults.removeObject(forKey: key)
+        print("Object removed from UserDefaults with key: \(key)")
     }
 }

@@ -74,7 +74,9 @@ class CartViewModel: ObservableObject {
 
 
 
-struct CartItem: Identifiable {
+import Foundation
+
+struct CartItem: Identifiable, Codable {
     let id: UUID
     let product: Product
     var quantity: Int
@@ -88,5 +90,27 @@ struct CartItem: Identifiable {
     var totalPrice: Double {
         Double(quantity) * product.price
     }
+    
+    // MARK: - Custom Encoding and Decoding for Product
+    enum CodingKeys: String, CodingKey {
+        case id, product, quantity
+    }
+
+    // Custom initializer for decoding
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        product = try container.decode(Product.self, forKey: .product)
+        quantity = try container.decode(Int.self, forKey: .quantity)
+    }
+
+    // Custom encoding method
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(product, forKey: .product)
+        try container.encode(quantity, forKey: .quantity)
+    }
 }
+
 

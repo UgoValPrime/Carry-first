@@ -6,12 +6,19 @@
 //
 
 import SwiftUI
+import Resolver
 
 @main
 struct Carry1stEcommerceAppApp: App {
+    init() {
+        Resolver.registerServices()
+    }
+    
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ProductListView()
+                .environmentObject(CartViewModel(cartRepository: Resolver.resolve()))
         }
     }
 }
